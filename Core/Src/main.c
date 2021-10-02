@@ -28,11 +28,16 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-struct keyboardHID_t {
+struct keyboardHIDBitmap_t {
     uint8_t report_id;
     uint8_t modifiers;
-    uint8_t reserved;
-    uint8_t key[6];
+    uint8_t key_bit[REPORT_KEYBIT_BYTES];
+};
+struct keyboardHID_t {
+  uint8_t report_id;
+  uint8_t modifiers;
+  uint8_t reserved;
+  uint8_t key[6];
 };
 /* USER CODE END PTD */
 
@@ -46,6 +51,8 @@ struct keyboardHID_t {
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim14;
+
 UART_HandleTypeDef huart5;
 
 /* USER CODE BEGIN PV */
@@ -56,13 +63,20 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_UART5_Init(void);
+static void MX_TIM14_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+static volatile uint8_t timer_intr = 0;
+void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef* htim )
+{
+  if (htim->Instance == TIM14) {
+    timer_intr = 1;
+  }
+}
 /* USER CODE END 0 */
 
 /**
@@ -81,18 +95,21 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  struct keyboardHID_t keyboardHID1;
+  struct keyboardHIDBitmap_t keyboardHID;
   struct keyboardHID_t keyboardHID2;
-  keyboardHID1.report_id = 1;
-  keyboardHID1.modifiers = 0;
-  keyboardHID1.reserved = 0;
-  keyboardHID2.report_id = 2;
-  keyboardHID2.modifiers = 0;
-  keyboardHID2.reserved = 0;
+  keyboardHID.report_id = 2;
+  keyboardHID.modifiers = 0;
+  for (int8_t i = 0; i < REPORT_KEYBIT_BYTES; ++i) {
+    keyboardHID.key_bit[i] = 0;
+  }
+
   for (int8_t i = 0; i < 6; ++i) {
-    keyboardHID1.key[i] = 0;
     keyboardHID2.key[i] = 0;
   }
+  keyboardHID2.report_id = 1;
+  keyboardHID2.modifiers =0 ;
+  keyboardHID2.reserved = 0;
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -106,21 +123,56 @@ int main(void)
   MX_GPIO_Init();
   MX_UART5_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_TIM_Base_Start_IT( &htim14 );
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   #pragma clang diagnostic push
   #pragma ide diagnostic ignored "EndlessLoop"
-  USBD_CUSTOM_HID_SendReport( &hUsbDeviceFS, (uint8_t*) &keyboardHID1, sizeof( struct keyboardHID_t ) );
-  USBD_CUSTOM_HID_SendReport( &hUsbDeviceFS, (uint8_t*) &keyboardHID2, sizeof( struct keyboardHID_t ) );
+  //USBD_CUSTOM_HID_SendReport( &hUsbDeviceFS, (uint8_t*) &keyboardHID, sizeof( struct keyboardHIDBitmap_t ) );
+  int cnt = 0;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    while (timer_intr == 0);
+    timer_intr = 0;
+    cnt++;
+    if(cnt==1000) {
+      USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
+      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID2, sizeof(struct keyboardHID_t));
+    }
+    if(cnt==2000){
+      for (int8_t i = 0; i < REPORT_KEYBIT_BYTES; ++i) {
+        keyboardHID.key_bit[i] = 0;
+      }
+
+      for (int8_t i = 0; i < 6; ++i) {
+        keyboardHID2.key[i] = 0;
+      }
+      USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
+      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID2, sizeof(struct keyboardHID_t));
+      keyboardHID2.key[0] = 0x04;
+//      keyboardHID.key[0]  = 0xf0;
+//      keyboardHID.key[1]  = 0xff;
+//      keyboardHID.key[2]  = 0xff;
+//      keyboardHID.key[3]  = 0xff;
+//      keyboardHID.key[4]  = 0xff;        //   -27
+//      keyboardHID.key[5]  = 0b11100001;  // 28-2F
+//      keyboardHID.key[6]  = 0xff;        // 30-37
+//      keyboardHID.key[7]  = 0b00000001;  // 38-3F
+//      keyboardHID.key[8]  = 0b00000000;  // 40-47
+//      keyboardHID.key[9]  = 0b10000000;  // 48-4F
+//      keyboardHID.key[10] = 0b11110111;  // 50-57
+//      keyboardHID.key[11] = 0b11111111;  // 58-5F
+//      keyboardHID.key[12] = 0b11111111;  // 60-67
+      cnt=0;
+    }
   }
   /* USER CODE END 3 */
 }
@@ -166,6 +218,37 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM14 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM14_Init(void)
+{
+
+  /* USER CODE BEGIN TIM14_Init 0 */
+
+  /* USER CODE END TIM14_Init 0 */
+
+  /* USER CODE BEGIN TIM14_Init 1 */
+
+  /* USER CODE END TIM14_Init 1 */
+  htim14.Instance = TIM14;
+  htim14.Init.Prescaler = 47;
+  htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim14.Init.Period = 999;
+  htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM14_Init 2 */
+
+  /* USER CODE END TIM14_Init 2 */
+
 }
 
 /**
