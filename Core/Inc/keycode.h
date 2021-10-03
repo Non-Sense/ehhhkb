@@ -1,0 +1,252 @@
+//
+// Created by NonSense on 2021/10/02.
+//
+
+#ifndef EHHHKB_KEYCODE_H
+#define EHHHKB_KEYCODE_H
+
+
+#define _______ KC_TRNS
+#define XXXXXXX KC_NO
+
+#define KC_TRANSPARENT 0x01
+#define KC_TRNS KC_TRANSPARENT
+
+#define KC_ENT KC_ENTER
+#define KC_ESC KC_ESCAPE
+#define KC_BSPC KC_BSPACE
+#define KC_SPC KC_SPACE
+#define KC_MINS KC_MINUS
+#define KC_EQL KC_EQUAL
+#define KC_LBRC KC_LBRACKET
+#define KC_RBRC KC_RBRACKET
+#define KC_BSLS KC_BSLASH
+#define KC_NUHS KC_NONUS_HASH
+#define KC_SCLN KC_SCOLON
+#define KC_QUOT KC_QUOTE
+#define KC_GRV KC_GRAVE
+#define KC_COMM KC_COMMA
+#define KC_SLSH KC_SLASH
+#define KC_NUBS KC_NONUS_BSLASH
+
+#define KC_CLCK KC_CAPSLOCK
+#define KC_CAPS KC_CAPSLOCK
+#define KC_SLCK KC_SCROLLLOCK
+#define KC_NLCK KC_NUMLOCK
+#define KC_LCAP KC_LOCKING_CAPS
+#define KC_LNUM KC_LOCKING_NUM
+#define KC_LSCR KC_LOCKING_SCROLL
+
+#define KC_PSCR KC_PSCREEN
+#define KC_PAUS KC_PAUSE
+#define KC_BRK KC_PAUSE
+#define KC_INS KC_INSERT
+#define KC_DEL KC_DELETE
+#define KC_PGDN KC_PGDOWN
+#define KC_RGHT KC_RIGHT
+#define KC_APP KC_APPLICATION
+#define KC_EXEC KC_EXECUTE
+#define KC_SLCT KC_SELECT
+#define KC_AGIN KC_AGAIN
+#define KC_PSTE KC_PASTE
+#define KC_ERAS KC_ALT_ERASE
+#define KC_CLR KC_CLEAR
+
+#define KC_LCTL KC_LCTRL
+#define KC_LSFT KC_LSHIFT
+#define KC_LOPT KC_LALT
+#define KC_LCMD KC_LGUI
+#define KC_LWIN KC_LGUI
+#define KC_RCTL KC_RCTRL
+#define KC_RSFT KC_RSHIFT
+#define KC_ALGR KC_RALT
+#define KC_ROPT KC_RALT
+#define KC_RCMD KC_RGUI
+#define KC_RWIN KC_RGUI
+
+enum hid_keyboard_keypad_usage {
+  KC_NO = 0x00,
+  KC_ROLL_OVER,
+  KC_POST_FAIL,
+  KC_UNDEFINED,
+  KC_A,
+  KC_B,
+  KC_C,
+  KC_D,
+  KC_E,
+  KC_F,
+  KC_G,
+  KC_H,
+  KC_I,
+  KC_J,
+  KC_K,
+  KC_L,
+  KC_M,
+  KC_N,
+  KC_O,
+  KC_P,
+  KC_Q,
+  KC_R,
+  KC_S,
+  KC_T,
+  KC_U,
+  KC_V,
+  KC_W,
+  KC_X,
+  KC_Y,
+  KC_Z,
+  KC_1,
+  KC_2,
+  KC_3,
+  KC_4,
+  KC_5,
+  KC_6,
+  KC_7,
+  KC_8,
+  KC_9,
+  KC_0,
+  KC_ENTER,
+  KC_ESCAPE,
+  KC_BSPACE,
+  KC_TAB,
+  KC_SPACE,
+  KC_MINUS,
+  KC_EQUAL,
+  KC_LBRACKET,
+  KC_RBRACKET,
+  KC_BSLASH,
+  KC_NONUS_HASH,
+  KC_SCOLON,
+  KC_QUOTE,
+  KC_GRAVE,
+  KC_COMMA,
+  KC_DOT,
+  KC_SLASH,
+  KC_CAPSLOCK,
+  KC_F1,
+  KC_F2,
+  KC_F3,
+  KC_F4,
+  KC_F5,
+  KC_F6,
+  KC_F7,
+  KC_F8,
+  KC_F9,
+  KC_F10,
+  KC_F11,
+  KC_F12,
+  KC_PSCREEN,
+  KC_SCROLLLOCK,
+  KC_PAUSE,
+  KC_INSERT,
+  KC_HOME,
+  KC_PGUP,
+  KC_DELETE,
+  KC_END,
+  KC_PGDOWN,
+  KC_RIGHT,
+  KC_LEFT,
+  KC_DOWN,
+  KC_UP,
+  KC_NUMLOCK,
+  KC_KP_SLASH,
+  KC_KP_ASTERISK,
+  KC_KP_MINUS,
+  KC_KP_PLUS,
+  KC_KP_ENTER,
+  KC_KP_1,
+  KC_KP_2,
+  KC_KP_3,
+  KC_KP_4,
+  KC_KP_5,
+  KC_KP_6,
+  KC_KP_7,
+  KC_KP_8,
+  KC_KP_9,
+  KC_KP_0,
+  KC_KP_DOT,
+  KC_NONUS_BSLASH,
+  KC_APPLICATION,
+  KC_POWER,
+  KC_KP_EQUAL,
+  KC_F13,
+  KC_F14,
+  KC_F15,
+  KC_F16,
+  KC_F17,
+  KC_F18,
+  KC_F19,
+  KC_F20,
+  KC_F21,
+  KC_F22,
+  KC_F23,
+  KC_F24,
+  KC_EXECUTE,
+  KC_HELP,
+  KC_MENU,
+  KC_SELECT,
+  KC_STOP,
+  KC_AGAIN,
+  KC_UNDO,
+  KC_CUT,
+  KC_COPY,
+  KC_PASTE,
+  KC_FIND,
+  KC_MUTE,
+  KC_VOLUP,
+  KC_VOLDOWN,
+  KC_LOCKING_CAPS,
+  KC_LOCKING_NUM,
+  KC_LOCKING_SCROLL,
+  KC_KP_COMMA,
+  KC_KP_EQUAL_AS400,
+  KC_INT1,
+  KC_INT2,
+  KC_INT3,
+  KC_INT4,
+  KC_INT5,
+  KC_INT6,
+  KC_INT7,
+  KC_INT8,
+  KC_INT9,
+  KC_LANG1,
+  KC_LANG2,
+  KC_LANG3,
+  KC_LANG4,
+  KC_LANG5,
+  KC_LANG6,
+  KC_LANG7,
+  KC_LANG8,
+  KC_LANG9,
+  KC_ALT_ERASE,
+  KC_SYSREQ,
+  KC_CANCEL,
+  KC_CLEAR,
+  KC_PRIOR,
+  KC_RETURN,
+  KC_SEPARATOR,
+  KC_OUT,
+  KC_OPER,
+  KC_CLEAR_AGAIN,
+  KC_CRSEL,
+  KC_EXSEL,
+
+  KC_LCTRL = 0xE0,
+  KC_LSHIFT,
+  KC_LALT,
+  KC_LGUI,
+  KC_RCTRL,
+  KC_RSHIFT,
+  KC_RALT,
+  KC_RGUI,
+
+  // Meta keys
+  KC_FN1 = 0xF0,
+  KC_FN2 = 0xF1,
+  KC_FN3 = 0xF2,
+  KC_FN4 = 0xF3
+
+};
+
+
+#endif//EHHHKB_KEYCODE_H

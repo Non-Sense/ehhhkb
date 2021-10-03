@@ -24,6 +24,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "usbd_custom_hid_if.h"
+#include "keycode.h"
+#include "keymap.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,6 +59,8 @@ UART_HandleTypeDef huart5;
 
 /* USER CODE BEGIN PV */
 extern USBD_HandleTypeDef hUsbDeviceFS;
+struct keyboardHIDBitmap_t keyboardHID;
+uint8_t currentLayer = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,10 +77,45 @@ static void MX_TIM14_Init(void);
 static volatile uint8_t timer_intr = 0;
 void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef* htim )
 {
+  // 1ms interval
   if (htim->Instance == TIM14) {
     timer_intr = 1;
   }
 }
+void ResetBitmapReport(struct keyboardHIDBitmap_t* report){
+  report->modifiers = 0;
+  for (int8_t i = 0; i < REPORT_KEYBIT_BYTES; i++) {
+    report->key_bit[i] = 0;
+  }
+}
+void AddKeyBitmap(struct keyboardHIDBitmap_t* report, uint8_t code){
+  if((code>>3)<REPORT_KEYBIT_BYTES)
+    report->key_bit[code>>3] |= (1<<(code&0x07));
+}
+void RemoveKeyBitmap(struct keyboardHIDBitmap_t* report, uint8_t code){
+  if((code>>3)<REPORT_KEYBIT_BYTES)
+    report->key_bit[code>>3] &= ~(1<<(code&0x07));
+}
+void MatrixScan(){
+  for(uint8_t col=0; col<COL_NUM; col++){
+    for(uint8_t t=0; t<COL_NUM; t++){
+      if(t==col){
+        HAL_GPIO_WritePin(matrixColPort[t], matrixColPin[t], GPIO_PIN_SET);
+      } else {
+        HAL_GPIO_WritePin(matrixColPort[t], matrixColPin[t], GPIO_PIN_RESET);
+      }
+    }
+    for(uint8_t row=0; row<ROW_NUM; row++){
+      if(HAL_GPIO_ReadPin(matrixRowPort[row], matrixRowPin[row]) == GPIO_PIN_SET){
+        KeyPressed(col,row);
+      }
+    }
+  }
+}
+void KeyPressed(uint8_t col, uint8_t row){
+
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -95,20 +134,16 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  struct keyboardHIDBitmap_t keyboardHID;
-  struct keyboardHID_t keyboardHID2;
+  struct keyboardHID_t keyboardHIDNormal;
   keyboardHID.report_id = 2;
-  keyboardHID.modifiers = 0;
-  for (int8_t i = 0; i < REPORT_KEYBIT_BYTES; ++i) {
-    keyboardHID.key_bit[i] = 0;
-  }
+  ResetBitmapReport(&keyboardHID);
 
   for (int8_t i = 0; i < 6; ++i) {
-    keyboardHID2.key[i] = 0;
+    keyboardHIDNormal.key[i] = 0;
   }
-  keyboardHID2.report_id = 1;
-  keyboardHID2.modifiers =0 ;
-  keyboardHID2.reserved = 0;
+  keyboardHIDNormal.report_id = 1;
+  keyboardHIDNormal.modifiers =0 ;
+  keyboardHIDNormal.reserved = 0;
 
   /* USER CODE END Init */
 
@@ -145,7 +180,7 @@ int main(void)
     cnt++;
     if(cnt==1000) {
       USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
-      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID2, sizeof(struct keyboardHID_t));
+      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHIDNormal, sizeof(struct keyboardHID_t));
     }
     if(cnt==2000){
       for (int8_t i = 0; i < REPORT_KEYBIT_BYTES; ++i) {
@@ -153,11 +188,11 @@ int main(void)
       }
 
       for (int8_t i = 0; i < 6; ++i) {
-        keyboardHID2.key[i] = 0;
+        keyboardHIDNormal.key[i] = 0;
       }
       USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
-      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID2, sizeof(struct keyboardHID_t));
-      keyboardHID2.key[0] = 0x04;
+      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHIDNormal, sizeof(struct keyboardHID_t));
+      keyboardHIDNormal.key[0] = 0x04;
 //      keyboardHID.key[0]  = 0xf0;
 //      keyboardHID.key[1]  = 0xff;
 //      keyboardHID.key[2]  = 0xff;
