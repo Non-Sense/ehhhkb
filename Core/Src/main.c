@@ -53,6 +53,7 @@ struct keyboardHID_t {
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim13;
 TIM_HandleTypeDef htim14;
 
 UART_HandleTypeDef huart5;
@@ -68,36 +69,51 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_UART5_Init(void);
 static void MX_TIM14_Init(void);
+static void MX_TIM13_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void KeyPressingRaw(uint8_t col, uint8_t row);
+static void KeyReleasingRaw(uint8_t col, uint8_t row);
+static void KeyPressing(uint8_t code);
+static void KeyReleasing(uint8_t code);
+static inline void FnProc();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 static volatile uint8_t timer_intr = 0;
+static volatile uint8_t scan_intr = 0;
+static volatile uint8_t fnKey = 0;
 void HAL_TIM_PeriodElapsedCallback( TIM_HandleTypeDef* htim )
 {
+  // 50us interval
+  if (htim->Instance == TIM13) {
+    scan_intr = 1;
+  }
   // 1ms interval
   if (htim->Instance == TIM14) {
     timer_intr = 1;
   }
 }
-void ResetBitmapReport(struct keyboardHIDBitmap_t* report){
+static void ResetBitmapReport(struct keyboardHIDBitmap_t* report){
   report->modifiers = 0;
   for (int8_t i = 0; i < REPORT_KEYBIT_BYTES; i++) {
     report->key_bit[i] = 0;
   }
 }
-void AddKeyBitmap(struct keyboardHIDBitmap_t* report, uint8_t code){
+static void AddKeyBitmap(struct keyboardHIDBitmap_t* report, uint8_t code){
   if((code>>3)<REPORT_KEYBIT_BYTES)
     report->key_bit[code>>3] |= (1<<(code&0x07));
 }
-void RemoveKeyBitmap(struct keyboardHIDBitmap_t* report, uint8_t code){
+static void RemoveKeyBitmap(struct keyboardHIDBitmap_t* report, uint8_t code){
   if((code>>3)<REPORT_KEYBIT_BYTES)
     report->key_bit[code>>3] &= ~(1<<(code&0x07));
 }
-void MatrixScan(){
+static void MatrixScan(){
+  fnKey = 0;
+  ResetBitmapReport(&keyboardHID);
   for(uint8_t col=0; col<COL_NUM; col++){
+//    while(scan_intr==0);
+//    scan_intr=0;
     for(uint8_t t=0; t<COL_NUM; t++){
       if(t==col){
         HAL_GPIO_WritePin(matrixColPort[t], matrixColPin[t], GPIO_PIN_SET);
@@ -105,15 +121,47 @@ void MatrixScan(){
         HAL_GPIO_WritePin(matrixColPort[t], matrixColPin[t], GPIO_PIN_RESET);
       }
     }
+    while(scan_intr==0);
+    scan_intr=0;
     for(uint8_t row=0; row<ROW_NUM; row++){
       if(HAL_GPIO_ReadPin(matrixRowPort[row], matrixRowPin[row]) == GPIO_PIN_SET){
-        KeyPressed(col,row);
+        KeyPressingRaw(col,row);
       }
     }
   }
+  FnProc();
 }
-void KeyPressed(uint8_t col, uint8_t row){
-
+static inline void KeyPressingRaw(uint8_t col, uint8_t row){
+  uint8_t code = keymap[currentLayer][row][col];
+  if(code == KC_TRNS)
+    code = keymap[currentLayer-1][row][col];
+  KeyPressing(code);
+}
+static inline void KeyPressing(uint8_t code){
+  switch (code) {
+    case KC_LCTRL:
+    case KC_LSHIFT:
+    case KC_LALT:
+    case KC_LGUI:
+    case KC_RCTRL:
+    case KC_RSHIFT:
+    case KC_RALT:
+    case KC_RGUI:
+      keyboardHID.modifiers |= (1<<(code&0x07));
+      break;
+    case KC_FN1:
+      fnKey = 1;
+      break;
+    default:
+      AddKeyBitmap(&keyboardHID,code);
+  }
+}
+static inline void FnProc(){
+  if(fnKey){
+    currentLayer = 1;
+  } else {
+    currentLayer = 0;
+  }
 }
 
 /* USER CODE END 0 */
@@ -159,8 +207,10 @@ int main(void)
   MX_UART5_Init();
   MX_USB_DEVICE_Init();
   MX_TIM14_Init();
+  MX_TIM13_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_TIM_Base_Start_IT( &htim13 );
   HAL_TIM_Base_Start_IT( &htim14 );
   /* USER CODE END 2 */
 
@@ -177,22 +227,24 @@ int main(void)
     /* USER CODE BEGIN 3 */
     while (timer_intr == 0);
     timer_intr = 0;
-    cnt++;
-    if(cnt==1000) {
-      USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
-      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHIDNormal, sizeof(struct keyboardHID_t));
-    }
-    if(cnt==2000){
-      for (int8_t i = 0; i < REPORT_KEYBIT_BYTES; ++i) {
-        keyboardHID.key_bit[i] = 0;
-      }
-
-      for (int8_t i = 0; i < 6; ++i) {
-        keyboardHIDNormal.key[i] = 0;
-      }
-      USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
-      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHIDNormal, sizeof(struct keyboardHID_t));
-      keyboardHIDNormal.key[0] = 0x04;
+    MatrixScan();
+    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
+//    cnt++;
+//    if(cnt==1000) {
+//      USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
+//      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHIDNormal, sizeof(struct keyboardHID_t));
+//    }
+//    if(cnt==2000){
+//      for (int8_t i = 0; i < REPORT_KEYBIT_BYTES; ++i) {
+//        keyboardHID.key_bit[i] = 0;
+//      }
+//
+//      for (int8_t i = 0; i < 6; ++i) {
+//        keyboardHIDNormal.key[i] = 0;
+//      }
+//      USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
+//      //USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHIDNormal, sizeof(struct keyboardHID_t));
+//      keyboardHIDNormal.key[0] = 0x04;
 //      keyboardHID.key[0]  = 0xf0;
 //      keyboardHID.key[1]  = 0xff;
 //      keyboardHID.key[2]  = 0xff;
@@ -206,8 +258,8 @@ int main(void)
 //      keyboardHID.key[10] = 0b11110111;  // 50-57
 //      keyboardHID.key[11] = 0b11111111;  // 58-5F
 //      keyboardHID.key[12] = 0b11111111;  // 60-67
-      cnt=0;
-    }
+//      cnt=0;
+//    }
   }
   /* USER CODE END 3 */
 }
@@ -253,6 +305,37 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief TIM13 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM13_Init(void)
+{
+
+  /* USER CODE BEGIN TIM13_Init 0 */
+
+  /* USER CODE END TIM13_Init 0 */
+
+  /* USER CODE BEGIN TIM13_Init 1 */
+
+  /* USER CODE END TIM13_Init 1 */
+  htim13.Instance = TIM13;
+  htim13.Init.Prescaler = 47;
+  htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim13.Init.Period = 49;
+  htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim13.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM13_Init 2 */
+
+  /* USER CODE END TIM13_Init 2 */
+
 }
 
 /**
@@ -395,7 +478,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
 /* USER CODE END 4 */
 
 /**
