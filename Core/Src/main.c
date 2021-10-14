@@ -62,6 +62,8 @@ UART_HandleTypeDef huart5;
 extern USBD_HandleTypeDef hUsbDeviceFS;
 struct keyboardHIDBitmap_t keyboardHID;
 uint8_t currentLayer = 0;
+uint8_t bufferIndex = 0;
+struct keyboardHIDBitmap_t keyboardHidBuffer[DEBOUNCE];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -111,9 +113,11 @@ static void RemoveKeyBitmap(struct keyboardHIDBitmap_t* report, uint8_t code){
 static void MatrixScan(){
   fnKey = 0;
   ResetBitmapReport(&keyboardHID);
+//  while(scan_intr==0);
+//  scan_intr=0;
   for(uint8_t col=0; col<COL_NUM; col++){
-//    while(scan_intr==0);
-//    scan_intr=0;
+    while(scan_intr==0);
+    scan_intr=0;
     for(uint8_t t=0; t<COL_NUM; t++){
       if(t==col){
         HAL_GPIO_WritePin(matrixColPort[t], matrixColPin[t], GPIO_PIN_SET);
@@ -162,6 +166,24 @@ static inline void FnProc(){
   } else {
     currentLayer = 0;
   }
+}
+
+static inline void AddBuffer(struct keyboardHIDBitmap_t bitmap){
+  bufferIndex++;
+  bufferIndex%=DEBOUNCE;
+  keyboardHidBuffer[bufferIndex] = bitmap;
+}
+
+static inline struct keyboardHIDBitmap_t SumBuffer(){
+  struct keyboardHIDBitmap_t t;
+  ResetBitmapReport(&t);
+  for(uint8_t i=0; i<DEBOUNCE; i++){
+    t.modifiers |= keyboardHidBuffer[i].modifiers;
+    for(uint8_t k=0; k<REPORT_KEYBIT_BYTES; k++){
+      t.key_bit[k] |= keyboardHidBuffer[i].key_bit[k];
+    }
+  }
+  return t;
 }
 
 /* USER CODE END 0 */
@@ -228,7 +250,9 @@ int main(void)
     while (timer_intr == 0);
     timer_intr = 0;
     MatrixScan();
-    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
+    AddBuffer(keyboardHID);
+    struct keyboardHIDBitmap_t sendReport = SumBuffer();
+    USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &sendReport, sizeof(struct keyboardHIDBitmap_t));
 //    cnt++;
 //    if(cnt==1000) {
 //      USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS, (uint8_t *) &keyboardHID, sizeof(struct keyboardHIDBitmap_t));
