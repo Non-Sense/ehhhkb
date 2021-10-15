@@ -64,6 +64,7 @@ struct keyboardHIDBitmap_t keyboardHID;
 uint8_t currentLayer = 0;
 uint8_t bufferIndex = 0;
 struct keyboardHIDBitmap_t keyboardHidBuffer[DEBOUNCE];
+uint8_t keyPush[ROW_NUM][COL_NUM];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -130,15 +131,20 @@ static void MatrixScan(){
     for(uint8_t row=0; row<ROW_NUM; row++){
       if(HAL_GPIO_ReadPin(matrixRowPort[row], matrixRowPin[row]) == GPIO_PIN_SET){
         KeyPressingRaw(col,row);
+      } else {
+        keyPush[row][col]=0;
       }
     }
   }
   FnProc();
 }
 static inline void KeyPressingRaw(uint8_t col, uint8_t row){
-  uint8_t code = keymap[currentLayer][row][col];
+  if(keyPush[row][col]==0){
+    keyPush[row][col]=currentLayer+1;
+  }
+  uint8_t code = keymap[keyPush[row][col]-1][row][col];
   if(code == KC_TRNS)
-    code = keymap[currentLayer-1][row][col];
+    code = keymap[keyPush[row][col]-2][row][col];
   KeyPressing(code);
 }
 static inline void KeyPressing(uint8_t code){
@@ -214,6 +220,12 @@ int main(void)
   keyboardHIDNormal.report_id = 1;
   keyboardHIDNormal.modifiers =0 ;
   keyboardHIDNormal.reserved = 0;
+
+  for(uint8_t i=0; i<ROW_NUM; i++){
+    for(uint8_t j=0; j<COL_NUM; j++){
+      keyPush[i][j]=0;
+    }
+  }
 
   /* USER CODE END Init */
 
