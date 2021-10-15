@@ -6,6 +6,7 @@
 
 #define _____ _______
 #define ____ _______
+#define XXXX XXXXXXX
 
 enum layers {
   _BASE,
