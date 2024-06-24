@@ -42,7 +42,7 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-#define DEBOUNCE 12
+#define DEBOUNCE 14
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
