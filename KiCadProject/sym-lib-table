@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name CX70M-24P1)(type Legacy)(uri ${KIPRJMOD}/ehhhkb.pretty/CX70M-24P1.lib)(options "")(descr ""))
+)
